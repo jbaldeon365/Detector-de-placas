@@ -1,0 +1,6 @@
+flask
+ultralytics
+paddleocr
+opencv-python
+imutils
+werkzeug
