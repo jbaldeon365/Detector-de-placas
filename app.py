@@ -6,7 +6,7 @@ from detector import detect_plate
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["UPLOAD_FOLDER"] = os.path.join(os.path.dirname(__file__), "uploads")
 
-# Cargar JSON de vehículos
+# Cargar JSON local con placas de vehículos sospechosos o robados
 def cargar_vehiculos():
     with open("vehiculos.json", "r", encoding="utf-8") as f:
         return json.load(f)["vehiculos"]
@@ -29,11 +29,9 @@ def upload_image():
     filepath = os.path.join("uploads", filename)
     file.save(filepath)
 
-    # Detectar todas las placas con tu modelo YOLOv11
     plates, annotated_path = detect_plate(filepath)
 
     if plates:
-        # Cargar datos del JSON
         vehiculos = cargar_vehiculos()
         resultados = []
 
@@ -65,7 +63,7 @@ def upload_image():
         })
 
     else:
-        return jsonify({"success": False})
+        return jsonify({"success": False, "error": "No se detectaron placas."})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000)
