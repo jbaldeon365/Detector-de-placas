@@ -1,20 +1,32 @@
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
-import cv2, re, os, imutils
+import cv2
+import re
+import os
+import imutils
 
-# Cargar modelos solo una vez
-model = YOLO("best_3.pt")  # Ruta al modelo YOLO entrenado
+# --- CAMBIO ---
+# Define el directorio temporal escribible en Render
+TEMP_DIR = "/tmp"
+
+# --- ADVERTENCIA ---
+# Cargar modelos solo una vez.
+# ¡ASEGÚRATE DE QUE 'best_3.pt' ESTÉ INCLUIDO EN TU REPOSITORIO DE GITHUB!
+# Si este archivo no está, la app fallará al iniciar.
+model = YOLO("best_3.pt")
 ocr = PaddleOCR(use_angle_cls=True, lang='en')
 
 def detect_plate(image_path):
     image = cv2.imread(image_path)
     if image is None:
+        print(f"Error: No se pudo leer la imagen en {image_path}")
         return [], None
     
     results = model(image)
     plate_texts = []
 
     for result in results:
+        # (Toda tu lógica de detección de placas va aquí... es correcta)
         index_plates = (result.boxes.cls == 0).nonzero(as_tuple=True)[0]
 
         for idx in index_plates:
@@ -49,7 +61,25 @@ def detect_plate(image_path):
                 cv2.putText(image, output_text, (x1, y1 - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
 
+    # --- CAMBIOS CRÍTICOS PARA RENDER ---
+    
+    # 1. Redimensionar la imagen anotada
     image = imutils.resize(image, width=720)
-    annotated_path = os.path.join("uploads", "annotated.jpg")
-    cv2.imwrite(annotated_path, image)
+    
+    # 2. Crear un nombre de archivo de salida ÚNICO
+    #    (Basado en el nombre del archivo original para evitar que los usuarios se pisen)
+    input_filename = os.path.basename(image_path)
+    annotated_filename = f"annotated_{input_filename}"
+    
+    # 3. Definir la ruta de guardado en el directorio temporal /tmp
+    annotated_path = os.path.join(TEMP_DIR, annotated_filename)
+    
+    try:
+        # 4. Guardar la imagen anotada en /tmp
+        cv2.imwrite(annotated_path, image)
+    except Exception as e:
+        print(f"Error al guardar la imagen anotada en {annotated_path}: {e}")
+        return plate_texts, None # Devolver None si falla el guardado
+
+    # 5. Devolver las placas y la RUTA COMPLETA al archivo en /tmp
     return plate_texts, annotated_path
